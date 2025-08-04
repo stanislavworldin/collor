@@ -4,9 +4,10 @@ import 'package:collor/collor.dart';
 
 void main() {
   group('ColorPickerPopup Tests', () {
-    testWidgets('should initialize with correct initial color', (WidgetTester tester) async {
+    testWidgets('should initialize with correct initial color',
+        (WidgetTester tester) async {
       const Color initialColor = Colors.blue;
-      
+
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -33,12 +34,13 @@ void main() {
 
       // Check that popup opened
       expect(find.text('Select Color'), findsOneWidget);
-      
+
       // Check that select button is present
       expect(find.text('Select'), findsOneWidget);
     });
 
-    testWidgets('should display color values correctly', (WidgetTester tester) async {
+    testWidgets('should display color values correctly',
+        (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -69,9 +71,10 @@ void main() {
       expect(find.text('HSV:'), findsOneWidget);
     });
 
-    testWidgets('should call onColorSelected when select button is pressed', (WidgetTester tester) async {
+    testWidgets('should call onColorSelected when select button is pressed',
+        (WidgetTester tester) async {
       Color? selectedColor;
-      
+
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -106,7 +109,8 @@ void main() {
       expect(selectedColor, isNotNull);
     });
 
-    testWidgets('should close dialog when select button is pressed', (WidgetTester tester) async {
+    testWidgets('should close dialog when select button is pressed',
+        (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -142,7 +146,8 @@ void main() {
       expect(find.text('Select Color'), findsNothing);
     });
 
-    testWidgets('should update color when hue slider is dragged', (WidgetTester tester) async {
+    testWidgets('should update color when hue slider is dragged',
+        (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -169,7 +174,7 @@ void main() {
 
       // Find the hue slider (first slider)
       final hueSlider = find.byType(GestureDetector).first;
-      
+
       // Drag the hue slider
       await tester.drag(hueSlider, const Offset(50, 0));
       await tester.pumpAndSettle();
@@ -178,7 +183,8 @@ void main() {
       expect(find.text('HSV:'), findsOneWidget);
     });
 
-    testWidgets('should update color when value slider is dragged', (WidgetTester tester) async {
+    testWidgets('should update color when value slider is dragged',
+        (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -206,7 +212,7 @@ void main() {
       // Find the value slider (second slider)
       final valueSliders = find.byType(GestureDetector);
       final valueSlider = valueSliders.at(1);
-      
+
       // Drag the value slider
       await tester.drag(valueSlider, const Offset(30, 0));
       await tester.pumpAndSettle();
@@ -215,7 +221,8 @@ void main() {
       expect(find.text('HSV:'), findsOneWidget);
     });
 
-    testWidgets('should update color when color square is tapped', (WidgetTester tester) async {
+    testWidgets('should update color when color square is tapped',
+        (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -242,7 +249,7 @@ void main() {
 
       // Find the color square
       final colorSquare = find.byType(MouseRegion);
-      
+
       // Tap the color square
       await tester.tap(colorSquare);
       await tester.pumpAndSettle();
@@ -251,7 +258,8 @@ void main() {
       expect(find.text('HSV:'), findsOneWidget);
     });
 
-    testWidgets('should show fixed state when color square is double tapped', (WidgetTester tester) async {
+    testWidgets('should show fixed state when color square is double tapped',
+        (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -278,7 +286,7 @@ void main() {
 
       // Find the color square
       final colorSquare = find.byType(MouseRegion);
-      
+
       // Double tap the color square
       await tester.tap(colorSquare);
       await tester.pump();
@@ -292,8 +300,9 @@ void main() {
 
   group('ColorPickerPainter Tests', () {
     test('should paint circle indicator correctly', () {
-      final painter = ColorPickerPainter(const Offset(100, 100), Colors.red, false);
-      
+      final painter =
+          ColorPickerPainter(const Offset(100, 100), Colors.red, false);
+
       // Check that painter doesn't cause errors
       expect(painter.shouldRepaint(painter), true);
     });
@@ -302,7 +311,7 @@ void main() {
   group('SliderPainter Tests', () {
     test('should paint slider indicator correctly', () {
       final painter = SliderPainter(const Offset(50, 0), false);
-      
+
       // Check that painter doesn't cause errors
       expect(painter.shouldRepaint(painter), true);
     });

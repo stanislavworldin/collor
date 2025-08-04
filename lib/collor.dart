@@ -1,3 +1,3 @@
 library collor;
 
-export 'src/color_picker_popup.dart'; 
+export 'src/color_picker_popup.dart';
