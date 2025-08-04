@@ -12,7 +12,7 @@ Experience the full functionality of the color picker with interactive sliders, 
 
 This color picker is designed to be as lightweight as possible while maintaining full functionality:
 - **Only 1 file** - Single `color_picker_popup.dart` file
-- **Only 92KB** - Ultra compact size
+- **Only 47KB** - Ultra compact size
 - **Only 325 lines of code**
 - **Zero external dependencies**
 - **Minimal memory footprint**
