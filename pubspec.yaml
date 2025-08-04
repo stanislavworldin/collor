@@ -1,10 +1,10 @@
 name: collor
 description: A super lightweight and elegant color picker library for Flutter applications with zero external dependencies.
 version: 1.1.0
-homepage: https://github.com/your-username/collor
-repository: https://github.com/your-username/collor
-issue_tracker: https://github.com/your-username/collor/issues
-documentation: https://github.com/your-username/collor#readme
+homepage: https://github.com/stanislavworldin/collor
+repository: https://github.com/stanislavworldin/collor
+issue_tracker: https://github.com/stanislavworldin/collor/issues
+documentation: https://github.com/stanislavworldin/collor#readme
 
 topics:
   - color-picker
