@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.2
+
+### 📸 UI Improvements
+- Added screenshot to README.md showcasing the color picker interface
+- Enhanced documentation with visual demonstration
+- Improved project presentation with live demo image
+
 ## 1.1.1
 
 ### 🔧 Bug Fixes
