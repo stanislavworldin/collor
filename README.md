@@ -5,6 +5,8 @@ A **super lightweight** and elegant color picker library for Flutter application
 ## 🚀 Super Lightweight
 
 This color picker is designed to be as lightweight as possible while maintaining full functionality:
+- **Only 1 file** - Single `color_picker_popup.dart` file
+- **Only 92KB** - Ultra compact size
 - **Only 325 lines of code**
 - **Zero external dependencies**
 - **Minimal memory footprint**
