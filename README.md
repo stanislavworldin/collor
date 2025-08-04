@@ -22,6 +22,12 @@ This color picker is designed to be as lightweight as possible while maintaining
 - **Customizable**: Easy to integrate into any Flutter app
 - **No Close Button**: Minimalist design without unnecessary UI elements
 
+## 🎮 Live Demo
+
+Try the color picker in action: **[Live Demo](https://stanislavworldin.github.io/collor/)**
+
+Experience the full functionality of the color picker with interactive sliders, real-time color display, and smooth color selection.
+
 ## Installation
 
 Add this to your package's `pubspec.yaml` file:
