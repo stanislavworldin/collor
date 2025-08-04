@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:collor/src/color_picker_popup.dart';
+import 'package:flutter/services.dart';
+import 'package:collor/collor.dart';
 
 void main() {
   runApp(const MyApp());
@@ -33,16 +34,34 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   Color _selectedColor = Colors.blue;
 
+  // Функция для получения HSV значений
+  Map<String, int> _getHSVValues(Color color) {
+    final HSVColor hsv = HSVColor.fromColor(color);
+    return {
+      'h': hsv.hue.round(),
+      's': (hsv.saturation * 100).round(),
+      'v': (hsv.value * 100).round(),
+    };
+  }
+
+  // Функция для копирования в буфер обмена
+  void _copyToClipboard(String text) {
+    Clipboard.setData(ClipboardData(text: text));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Copied: $text'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   void _showColorPicker() async {
-    debugPrint('MyHomePage: showing color picker');
-    
     final Color? result = await showDialog<Color>(
       context: context,
       builder: (BuildContext context) {
         return ColorPickerPopup(
           initialColor: _selectedColor,
           onColorSelected: (Color color) {
-            debugPrint('MyHomePage: color selected ${color.toString()}');
             setState(() {
               _selectedColor = color;
             });
@@ -52,7 +71,6 @@ class _MyHomePageState extends State<MyHomePage> {
     );
 
     if (result != null) {
-      debugPrint('MyHomePage: dialog returned color ${result.toString()}');
       setState(() {
         _selectedColor = result;
       });
@@ -75,7 +93,7 @@ class _MyHomePageState extends State<MyHomePage> {
               style: TextStyle(fontSize: 24),
             ),
             const SizedBox(height: 20),
-            
+
             // Отображение выбранного цвета
             Container(
               width: 100,
@@ -87,7 +105,7 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             ),
             const SizedBox(height: 20),
-            
+
             // Информация о цвете
             Container(
               padding: const EdgeInsets.all(16),
@@ -97,33 +115,90 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
               child: Column(
                 children: [
+                  // HEX формат
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text('HEX:'),
-                      Text('#${_selectedColor.toARGB32().toRadixString(16).substring(2).toUpperCase()}'),
+                      Row(
+                        children: [
+                          Text(
+                              '#${_selectedColor.toARGB32().toRadixString(16).substring(2).toUpperCase()}'),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () => _copyToClipboard(
+                                '#${_selectedColor.toARGB32().toRadixString(16).substring(2).toUpperCase()}'),
+                            child: const Text('Copy',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.blue,
+                                    fontWeight: FontWeight.w500)),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 8),
+                  // RGB формат
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text('RGB:'),
-                      Text('${(_selectedColor.r * 255.0).round()}, ${(_selectedColor.g * 255.0).round()}, ${(_selectedColor.b * 255.0).round()}'),
+                      Row(
+                        children: [
+                          Text(
+                              '${(_selectedColor.r * 255.0).round()}, ${(_selectedColor.g * 255.0).round()}, ${(_selectedColor.b * 255.0).round()}'),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () => _copyToClipboard(
+                                '${(_selectedColor.r * 255.0).round()}, ${(_selectedColor.g * 255.0).round()}, ${(_selectedColor.b * 255.0).round()}'),
+                            child: const Text('Copy',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.blue,
+                                    fontWeight: FontWeight.w500)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  // HSV формат
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('HSV:'),
+                      Row(
+                        children: [
+                          Text(
+                              '${_getHSVValues(_selectedColor)['h']}, ${_getHSVValues(_selectedColor)['s']}%, ${_getHSVValues(_selectedColor)['v']}%'),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () => _copyToClipboard(
+                                '${_getHSVValues(_selectedColor)['h']}, ${_getHSVValues(_selectedColor)['s']}%, ${_getHSVValues(_selectedColor)['v']}%'),
+                            child: const Text('Copy',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.blue,
+                                    fontWeight: FontWeight.w500)),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 30),
-            
+
             // Кнопка выбора цвета
             ElevatedButton(
               onPressed: _showColorPicker,
               style: ElevatedButton.styleFrom(
                 backgroundColor: _selectedColor,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
               ),
               child: const Text(
                 'Select Color',

@@ -199,7 +199,7 @@ void main() {
         
         // Check that color is created correctly
         expect(color, isA<Color>());
-        expect(color.alpha, equals(255));
+        expect(color.toARGB32() >> 24, equals(255));
       }
     });
 
@@ -213,7 +213,7 @@ void main() {
         
         // Check that color is created correctly
         expect(color, isA<Color>());
-        expect(color.alpha, equals(255));
+        expect(color.toARGB32() >> 24, equals(255));
       }
     });
 

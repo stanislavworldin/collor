@@ -292,7 +292,7 @@ void main() {
 
   group('ColorPickerPainter Tests', () {
     test('should paint circle indicator correctly', () {
-      final painter = ColorPickerPainter(const Offset(100, 100), Colors.red);
+      final painter = ColorPickerPainter(const Offset(100, 100), Colors.red, false);
       
       // Check that painter doesn't cause errors
       expect(painter.shouldRepaint(painter), true);
@@ -301,7 +301,7 @@ void main() {
 
   group('SliderPainter Tests', () {
     test('should paint slider indicator correctly', () {
-      final painter = SliderPainter(const Offset(50, 0));
+      final painter = SliderPainter(const Offset(50, 0), false);
       
       // Check that painter doesn't cause errors
       expect(painter.shouldRepaint(painter), true);
