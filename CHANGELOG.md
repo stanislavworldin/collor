@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.1
+
+### 🔧 Bug Fixes
+- Fixed dart format issues in `lib/collor.dart`
+- Improved code formatting across all files
+- Enhanced static analysis compliance
+
 ## 1.1.0
 
 ### 🎉 Major Updates
