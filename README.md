@@ -6,6 +6,8 @@ A **super lightweight** and elegant color picker library for Flutter application
 
 Try the color picker in action: **[Live Demo](https://stanislavworldin.github.io/collor/)**
 
+![Collor Color Picker Demo](https://raw.githubusercontent.com/stanislavworldin/collor/main/screenshots/1.png)
+
 Experience the full functionality of the color picker with interactive sliders, real-time color display, and smooth color selection.
 
 ## 🚀 Super Lightweight
