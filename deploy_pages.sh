@@ -35,7 +35,7 @@ pushd example >/dev/null
   flutter clean
   rm -rf build .dart_tool
   flutter pub get
-  flutter build web --release --base-href "$BASE_HREF" --web-renderer "$WEB_RENDERER"
+  flutter build web --release --base-href "$BASE_HREF"
 popd >/dev/null
 
 # Stash build into a temporary directory because switching branch will change files
