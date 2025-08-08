@@ -12,6 +12,8 @@ GH_USER="$(echo "$ORIGIN_URL" | sed -E 's#.*github.com[:/ ]([^/]+)/.*#\1#')"
 GH_REPO="$(echo "$ORIGIN_URL" | sed -E 's#.*github.com[:/ ][^/]+/([^/.]+)(\\.git)?#\1#')"
 
 BASE_HREF=${BASE_HREF:-"/${GH_REPO}/"}
+# Choose web renderer (html|canvaskit). HTML is safer on GH Pages.
+WEB_RENDERER=${WEB_RENDERER:-"html"}
 BUILD_DIR="example/build/web"
 
 # Ensure we are at repo root
@@ -33,7 +35,7 @@ pushd example >/dev/null
   flutter clean
   rm -rf build .dart_tool
   flutter pub get
-  flutter build web --release --base-href "$BASE_HREF"
+  flutter build web --release --base-href "$BASE_HREF" --web-renderer "$WEB_RENDERER"
 popd >/dev/null
 
 # Stash build into a temporary directory because switching branch will change files
@@ -54,6 +56,9 @@ git ls-files -z | xargs -0 git rm -f -q || true
 
 log "Copying fresh build to gh-pages root"
 cp -R "$TMP_DIR"/. .
+
+# Disable Jekyll to avoid asset processing on GH Pages
+touch .nojekyll
 
 # SPA fallback for deep links
 if [[ -f index.html ]]; then
