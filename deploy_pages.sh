@@ -8,8 +8,11 @@ die() { echo "[deploy_pages][ERROR] $*" >&2; exit 1; }
 # Config
 # Derive GitHub user/repo from origin to avoid hardcoding
 ORIGIN_URL="$(git remote get-url origin)"
+# Extract user
 GH_USER="$(echo "$ORIGIN_URL" | sed -E 's#.*github.com[:/ ]([^/]+)/.*#\1#')"
-GH_REPO="$(echo "$ORIGIN_URL" | sed -E 's#.*github.com[:/ ][^/]+/([^/.]+)(\\.git)?#\1#')"
+# Extract repo name robustly and strip optional .git suffix
+GH_REPO_RAW="${ORIGIN_URL##*/}"
+GH_REPO="${GH_REPO_RAW%.git}"
 
 BASE_HREF=${BASE_HREF:-"/${GH_REPO}/"}
 # Choose web renderer (html|canvaskit). HTML is safer on GH Pages.
