@@ -3,11 +3,17 @@ import 'package:flutter/material.dart';
 class ColorPickerPopup extends StatefulWidget {
   final Color initialColor;
   final Function(Color) onColorSelected;
+  // Вызывается при каждом изменении цвета (drag/hover/тап)
+  final ValueChanged<Color>? onChanged;
+  // Показать слайдер альфа-канала и включить расчёт RGBA/HSVA
+  final bool showAlpha;
 
   const ColorPickerPopup({
     super.key,
     required this.initialColor,
     required this.onColorSelected,
+    this.onChanged,
+    this.showAlpha = false,
   });
 
   @override
@@ -17,14 +23,24 @@ class ColorPickerPopup extends StatefulWidget {
 class _ColorPickerPopupState extends State<ColorPickerPopup> {
   late Color _selectedColor;
   late double _hue, _saturation, _value;
+  late double _alpha;
   late Offset _colorPickerPosition, _hueSliderPosition, _valueSliderPosition;
+  late Offset _alphaSliderPosition;
   final GlobalKey _colorPickerKey = GlobalKey();
   bool _isColorPickerFixed = false;
   bool _isDragging = false;
 
   static const double _size = 200.0;
   static const double _sliderHeight = 30.0;
-  static const double _sliderY = 15.0;
+  static const double _sliderMargin = 2.0;
+  double get _innerSliderWidth => _size - (_sliderMargin * 2);
+  double get _innerSliderHeight => _sliderHeight - (_sliderMargin * 2);
+  double get _sliderCenterY => _innerSliderHeight / 2;
+  // Кешированный список цветов для градиента оттенков (360 значений)
+  static final List<Color> _hueGradientColors = List<Color>.generate(
+      360,
+      (int index) =>
+          HSVColor.fromAHSV(1.0, index.toDouble(), 1.0, 1.0).toColor());
 
   @override
   void initState() {
@@ -36,8 +52,16 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
 
   void _initializePositions() {
     _colorPickerPosition = Offset(_saturation * _size, (1.0 - _value) * _size);
-    _hueSliderPosition = Offset(_hue / 360.0 * _size, _sliderY);
-    _valueSliderPosition = Offset(_value * _size, _sliderY);
+    const double radius = 10.0; // начальный радиус индикатора
+    final double hueX = (_hue / 360.0 * _innerSliderWidth)
+        .clamp(radius, _innerSliderWidth - radius);
+    final double valX =
+        (_value * _innerSliderWidth).clamp(radius, _innerSliderWidth - radius);
+    final double alpX =
+        (_alpha * _innerSliderWidth).clamp(radius, _innerSliderWidth - radius);
+    _hueSliderPosition = Offset(hueX, _sliderCenterY);
+    _valueSliderPosition = Offset(valX, _sliderCenterY);
+    _alphaSliderPosition = Offset(alpX, _sliderCenterY);
   }
 
   void _updateHSVFromColor(Color color) {
@@ -45,11 +69,23 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
     _hue = hsv.hue;
     _saturation = hsv.saturation;
     _value = hsv.value;
+    // Безопасно получаем альфу (0..1)
+    final int a8 = color.toARGB32() >> 24;
+    _alpha = a8 / 255.0;
   }
 
   void _updateColorFromHSV() {
-    _selectedColor =
-        HSVColor.fromAHSV(1.0, _hue, _saturation, _value).toColor();
+    final Color newColor =
+        HSVColor.fromAHSV(_alpha, _hue, _saturation, _value).toColor();
+    if (newColor.toARGB32() == _selectedColor.toARGB32()) {
+      return;
+    }
+    _selectedColor = newColor;
+    debugPrint(
+        'ColorPickerPopup: updated color from HSV -> H:${_hue.toStringAsFixed(1)} S:${(_saturation * 100).toStringAsFixed(1)}% V:${(_value * 100).toStringAsFixed(1)}% => ${_selectedColor.toString()}');
+    if (widget.onChanged != null) {
+      widget.onChanged!.call(_selectedColor);
+    }
   }
 
   void _updateColorPickerPosition(Offset localPosition) {
@@ -64,21 +100,28 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
   void _onColorPickerHover(PointerEvent event) {
     if (!_isColorPickerFixed) {
       setState(() {
-        final RenderBox renderBox =
-            _colorPickerKey.currentContext!.findRenderObject() as RenderBox;
-        _updateColorPickerPosition(renderBox.globalToLocal(event.position));
+        final RenderObject? ro =
+            _colorPickerKey.currentContext?.findRenderObject();
+        if (ro is RenderBox) {
+          _updateColorPickerPosition(ro.globalToLocal(event.position));
+        } else {
+          debugPrint('ColorPickerPopup: renderObject not ready on hover');
+        }
       });
     }
   }
 
   void _onColorPickerTap(TapDownDetails details) {
     setState(() {
-      final RenderBox renderBox =
-          _colorPickerKey.currentContext!.findRenderObject() as RenderBox;
-      _updateColorPickerPosition(
-          renderBox.globalToLocal(details.globalPosition));
-      _isColorPickerFixed =
-          !_isColorPickerFixed; // Переключаем состояние одним нажатием
+      final RenderObject? ro =
+          _colorPickerKey.currentContext?.findRenderObject();
+      if (ro is RenderBox) {
+        _updateColorPickerPosition(ro.globalToLocal(details.globalPosition));
+      } else {
+        debugPrint('ColorPickerPopup: renderObject not ready on tap');
+      }
+      _isColorPickerFixed = !_isColorPickerFixed;
+      debugPrint('ColorPickerPopup: fixed state -> $_isColorPickerFixed');
     });
   }
 
@@ -90,10 +133,11 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
 
   void _onColorPickerDragUpdate(DragUpdateDetails details) {
     setState(() {
-      final RenderBox renderBox =
-          _colorPickerKey.currentContext!.findRenderObject() as RenderBox;
-      _updateColorPickerPosition(
-          renderBox.globalToLocal(details.globalPosition));
+      final RenderObject? ro =
+          _colorPickerKey.currentContext?.findRenderObject();
+      if (ro is RenderBox) {
+        _updateColorPickerPosition(ro.globalToLocal(details.globalPosition));
+      }
     });
   }
 
@@ -115,15 +159,18 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
     setState(() {
       final currentPosition =
           isHueSlider ? _hueSliderPosition : _valueSliderPosition;
-      final double newX =
-          (currentPosition.dx + details.delta.dx).clamp(0.0, _size);
+      final double rawX = currentPosition.dx + details.delta.dx;
+      final double radius = _isDragging ? 14.0 : 10.0;
+      final double newX = rawX.clamp(radius, _innerSliderWidth - radius);
 
       if (isHueSlider) {
-        _hueSliderPosition = Offset(newX, _sliderY);
-        _hue = newX / _size * 360.0;
+        _hueSliderPosition = Offset(newX, _sliderCenterY);
+        _hue = (newX - radius) / (_innerSliderWidth - 2 * radius) * 360.0;
+        _hue = _hue.clamp(0.0, 360.0);
       } else {
-        _valueSliderPosition = Offset(newX, _sliderY);
-        _value = newX / _size;
+        _valueSliderPosition = Offset(newX, _sliderCenterY);
+        _value = (newX - radius) / (_innerSliderWidth - 2 * radius);
+        _value = _value.clamp(0.0, 1.0);
       }
       _updateColorFromHSV();
     });
@@ -135,32 +182,111 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
     });
   }
 
+  void _onAlphaPanStart(DragStartDetails details) {
+    debugPrint('ColorPickerPopup: alpha slider drag started');
+    setState(() {
+      _isDragging = true;
+    });
+  }
+
+  void _onAlphaPanUpdate(DragUpdateDetails details) {
+    setState(() {
+      final double rawX = _alphaSliderPosition.dx + details.delta.dx;
+      final double radius = _isDragging ? 14.0 : 10.0;
+      final double newX = rawX.clamp(radius, _innerSliderWidth - radius);
+      _alphaSliderPosition = Offset(newX, _sliderCenterY);
+      _alpha = (newX - radius) / (_innerSliderWidth - 2 * radius);
+      _alpha = _alpha.clamp(0.0, 1.0);
+      _updateColorFromHSV();
+    });
+  }
+
+  void _onAlphaPanEnd(DragEndDetails details) {
+    setState(() {
+      _isDragging = false;
+    });
+  }
+
   Widget _buildSlider({
     required List<Color> colors,
     required Offset position,
     required bool isHueSlider,
   }) {
-    return Container(
-      width: _size,
-      height: _sliderHeight,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(_sliderHeight / 2),
-        gradient: LinearGradient(colors: colors),
-        boxShadow: _isDragging
-            ? [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                )
-              ]
-            : null,
+    return Tooltip(
+      message: isHueSlider ? 'Hue' : 'Value',
+      child: Container(
+        width: _size,
+        height: _sliderHeight,
+        decoration: BoxDecoration(
+          color: Colors.grey[200],
+          borderRadius: BorderRadius.circular(_sliderHeight / 2),
+          boxShadow: _isDragging
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  )
+                ]
+              : null,
+        ),
+        child: Container(
+          margin: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular((_sliderHeight / 2) - 2),
+            gradient: LinearGradient(colors: colors),
+          ),
+          child: GestureDetector(
+            onPanStart: (details) => _onSliderPanStart(details, isHueSlider),
+            onPanUpdate: (details) => _onSliderPanUpdate(details, isHueSlider),
+            onPanEnd: (details) => _onSliderPanEnd(details, isHueSlider),
+            child: CustomPaint(
+              painter: SliderPainter(position, _isDragging),
+            ),
+          ),
+        ),
       ),
-      child: GestureDetector(
-        onPanStart: (details) => _onSliderPanStart(details, isHueSlider),
-        onPanUpdate: (details) => _onSliderPanUpdate(details, isHueSlider),
-        onPanEnd: (details) => _onSliderPanEnd(details, isHueSlider),
-        child: CustomPaint(painter: SliderPainter(position, _isDragging)),
+    );
+  }
+
+  Widget _buildAlphaSlider(Color baseColor) {
+    final List<Color> colors = [
+      baseColor.withValues(alpha: 0.0),
+      baseColor.withValues(alpha: 1.0),
+    ];
+    return Tooltip(
+      message: 'Alpha',
+      child: Container(
+        width: _size,
+        height: _sliderHeight,
+        decoration: BoxDecoration(
+          color: Colors.grey[200],
+          borderRadius: BorderRadius.circular(_sliderHeight / 2),
+          boxShadow: _isDragging
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  )
+                ]
+              : null,
+        ),
+        child: Container(
+          margin: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular((_sliderHeight / 2) - 2),
+            gradient: LinearGradient(colors: colors),
+          ),
+          child: GestureDetector(
+            onPanStart: _onAlphaPanStart,
+            onPanUpdate: _onAlphaPanUpdate,
+            onPanEnd: _onAlphaPanEnd,
+            child: CustomPaint(
+              painter: SliderPainter(_alphaSliderPosition, _isDragging),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -182,6 +308,14 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
           const SizedBox(height: 4),
           _buildInfoRow('HSV:',
               '${_hue.round()}, ${(_saturation * 100).round()}%, ${(_value * 100).round()}%'),
+          if (widget.showAlpha) ...[
+            const SizedBox(height: 4),
+            _buildInfoRow('RGBA:',
+                '${((_selectedColor.toARGB32() >> 24) & 0xFF)}, ${(_selectedColor.r * 255.0).round()}, ${(_selectedColor.g * 255.0).round()}, ${(_selectedColor.b * 255.0).round()}'),
+            const SizedBox(height: 4),
+            _buildInfoRow('HSVA:',
+                '${_hue.round()}, ${(_saturation * 100).round()}%, ${(_value * 100).round()}%, ${(100 * _alpha).round()}%'),
+          ],
         ],
       ),
     );
@@ -211,55 +345,59 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
               const SizedBox(height: 16),
 
               // Цветовой квадрат
-              MouseRegion(
-                onHover: _onColorPickerHover,
-                child: Container(
-                  key: _colorPickerKey,
-                  width: _size,
-                  height: _size,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.topRight,
-                      colors: [
-                        Colors.white,
-                        HSVColor.fromAHSV(1.0, _hue, 1.0, 1.0).toColor()
-                      ],
-                    ),
-                    boxShadow: _isDragging
-                        ? [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.3),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            )
-                          ]
-                        : [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.1),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            )
-                          ],
-                  ),
+              Tooltip(
+                message: 'Color square: tap to toggle lock, drag to pick',
+                child: MouseRegion(
+                  key: const ValueKey('color_square'),
+                  onHover: _onColorPickerHover,
                   child: Container(
+                    key: _colorPickerKey,
+                    width: _size,
+                    height: _size,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
                       gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Colors.transparent, Colors.black],
+                        begin: Alignment.topLeft,
+                        end: Alignment.topRight,
+                        colors: [
+                          Colors.white,
+                          HSVColor.fromAHSV(1.0, _hue, 1.0, 1.0).toColor()
+                        ],
                       ),
+                      boxShadow: _isDragging
+                          ? [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              )
+                            ]
+                          : [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              )
+                            ],
                     ),
-                    child: GestureDetector(
-                      onTapDown: _onColorPickerTap,
-                      onPanStart: _onColorPickerDragStart,
-                      onPanUpdate: _onColorPickerDragUpdate,
-                      onPanEnd: _onColorPickerDragEnd,
-                      child: CustomPaint(
-                          painter: ColorPickerPainter(_colorPickerPosition,
-                              _selectedColor, _isDragging)),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Colors.transparent, Colors.black],
+                        ),
+                      ),
+                      child: GestureDetector(
+                        onTapDown: _onColorPickerTap,
+                        onPanStart: _onColorPickerDragStart,
+                        onPanUpdate: _onColorPickerDragUpdate,
+                        onPanEnd: _onColorPickerDragEnd,
+                        child: CustomPaint(
+                            painter: ColorPickerPainter(_colorPickerPosition,
+                                _selectedColor, _isDragging)),
+                      ),
                     ),
                   ),
                 ),
@@ -268,6 +406,7 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
 
               // Индикатор состояния
               Container(
+                key: const ValueKey('state_indicator'),
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
@@ -288,15 +427,37 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
                   ),
                 ),
               ),
+              const SizedBox(height: 8),
+              // Иконка замка (упрощённый контрол, emoji для совместимости)
+              Center(
+                child: Tooltip(
+                  message:
+                      _isColorPickerFixed ? 'Unlock picker' : 'Lock picker',
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _isColorPickerFixed = !_isColorPickerFixed;
+                        debugPrint(
+                            'ColorPickerPopup: lock toggled via emoji -> $_isColorPickerFixed');
+                      });
+                    },
+                    child: Text(
+                      _isColorPickerFixed ? '🔒' : '🔓',
+                      style: TextStyle(
+                        fontSize: 22,
+                        color: _isColorPickerFixed
+                            ? Colors.green[700]
+                            : Colors.blue[700],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
               const SizedBox(height: 12),
 
               // Ползунки
               _buildSlider(
-                colors: List.generate(
-                    360,
-                    (index) =>
-                        HSVColor.fromAHSV(1.0, index.toDouble(), 1.0, 1.0)
-                            .toColor()),
+                colors: _hueGradientColors,
                 position: _hueSliderPosition,
                 isHueSlider: true,
               ),
@@ -309,6 +470,12 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
                 position: _valueSliderPosition,
                 isHueSlider: false,
               ),
+              if (widget.showAlpha) ...[
+                const SizedBox(height: 12),
+                _buildAlphaSlider(
+                  HSVColor.fromAHSV(1.0, _hue, _saturation, _value).toColor(),
+                ),
+              ],
               const SizedBox(height: 12),
 
               _buildColorInfo(),
@@ -317,22 +484,26 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
               // Кнопка выбора
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    debugPrint(
-                        'ColorPickerPopup: color selected ${_selectedColor.toString()}');
-                    widget.onColorSelected(_selectedColor);
-                    Navigator.of(context).pop(_selectedColor);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _selectedColor,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                child: Tooltip(
+                  message: 'Confirm selected color',
+                  child: ElevatedButton(
+                    key: const ValueKey('select_button'),
+                    onPressed: () {
+                      debugPrint(
+                          'ColorPickerPopup: color selected ${_selectedColor.toString()}');
+                      widget.onColorSelected(_selectedColor);
+                      Navigator.of(context).pop(_selectedColor);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _selectedColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
+                    child: const Text('Select', style: TextStyle(fontSize: 16)),
                   ),
-                  child: const Text('Select', style: TextStyle(fontSize: 16)),
                 ),
               ),
             ],
@@ -388,7 +559,11 @@ class ColorPickerPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant ColorPickerPainter oldDelegate) {
+    return oldDelegate.position != position ||
+        oldDelegate.currentColor != currentColor ||
+        oldDelegate.isDragging != isDragging;
+  }
 }
 
 class SliderPainter extends CustomPainter {
@@ -410,5 +585,8 @@ class SliderPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant SliderPainter oldDelegate) {
+    return oldDelegate.position != position ||
+        oldDelegate.isDragging != isDragging;
+  }
 }

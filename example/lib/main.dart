@@ -44,6 +44,29 @@ class _MyHomePageState extends State<MyHomePage> {
     };
   }
 
+  // Функция для получения RGBA/HSVA значений
+  Map<String, int> _getRGBAValues(Color color) {
+    final int a = (color.toARGB32() >> 24) & 0xFF;
+    return {
+      'a': a,
+      'r': (color.r * 255.0).round(),
+      'g': (color.g * 255.0).round(),
+      'b': (color.b * 255.0).round(),
+    };
+  }
+
+  Map<String, int> _getHSVAValues(Color color) {
+    final HSVColor hsv = HSVColor.fromColor(color);
+    final int aPercent =
+        (((color.toARGB32() >> 24) & 0xFF) * 100 / 255).round();
+    return {
+      'h': hsv.hue.round(),
+      's': (hsv.saturation * 100).round(),
+      'v': (hsv.value * 100).round(),
+      'a': aPercent,
+    };
+  }
+
   // Функция для копирования в буфер обмена
   void _copyToClipboard(String text) {
     Clipboard.setData(ClipboardData(text: text));
@@ -66,6 +89,13 @@ class _MyHomePageState extends State<MyHomePage> {
               _selectedColor = color;
             });
           },
+          onChanged: (Color color) {
+            debugPrint('Example: onChanged -> $color');
+            setState(() {
+              _selectedColor = color;
+            });
+          },
+          showAlpha: true,
         );
       },
     );
@@ -176,6 +206,54 @@ class _MyHomePageState extends State<MyHomePage> {
                           GestureDetector(
                             onTap: () => _copyToClipboard(
                                 '${_getHSVValues(_selectedColor)['h']}, ${_getHSVValues(_selectedColor)['s']}%, ${_getHSVValues(_selectedColor)['v']}%'),
+                            child: const Text('Copy',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.blue,
+                                    fontWeight: FontWeight.w500)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  // RGBA формат
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('RGBA:'),
+                      Row(
+                        children: [
+                          Text(
+                              '${_getRGBAValues(_selectedColor)['a']}, ${_getRGBAValues(_selectedColor)['r']}, ${_getRGBAValues(_selectedColor)['g']}, ${_getRGBAValues(_selectedColor)['b']}'),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () => _copyToClipboard(
+                                '${_getRGBAValues(_selectedColor)['a']}, ${_getRGBAValues(_selectedColor)['r']}, ${_getRGBAValues(_selectedColor)['g']}, ${_getRGBAValues(_selectedColor)['b']}'),
+                            child: const Text('Copy',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.blue,
+                                    fontWeight: FontWeight.w500)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  // HSVA формат
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('HSVA:'),
+                      Row(
+                        children: [
+                          Text(
+                              '${_getHSVAValues(_selectedColor)['h']}, ${_getHSVAValues(_selectedColor)['s']}%, ${_getHSVAValues(_selectedColor)['v']}%, ${_getHSVAValues(_selectedColor)['a']}%'),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () => _copyToClipboard(
+                                '${_getHSVAValues(_selectedColor)['h']}, ${_getHSVAValues(_selectedColor)['s']}%, ${_getHSVAValues(_selectedColor)['v']}%, ${_getHSVAValues(_selectedColor)['a']}%'),
                             child: const Text('Copy',
                                 style: TextStyle(
                                     fontSize: 12,

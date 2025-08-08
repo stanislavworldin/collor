@@ -11,6 +11,10 @@ dependencies:
     sdk: flutter
   collor: ^1.1.2
 
+dependency_overrides:
+  collor:
+    path: ../
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

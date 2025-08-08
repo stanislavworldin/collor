@@ -1,6 +1,6 @@
 # Collor
 
-A **super lightweight** and elegant color picker library for Flutter applications.
+A super lightweight and elegant color picker library for Flutter applications.
 
 ## 🎮 Live Demo
 
@@ -8,24 +8,23 @@ Try the color picker in action: **[Live Demo](https://stanislavworldin.github.io
 
 ![Collor Color Picker Demo](https://raw.githubusercontent.com/stanislavworldin/collor/main/screenshots/1.png)
 
-Experience the full functionality of the color picker with interactive sliders, real-time color display, and smooth color selection.
-
 ## 🚀 Super Lightweight
 
 This color picker is designed to be as lightweight as possible while maintaining full functionality:
-- **Only 1 file** - Single `color_picker_popup.dart` file
-- **Only 16KB** - Ultra compact size
-- **Only 414 lines of code**
-- **Zero external dependencies**
-- **Minimal memory footprint**
-- **Fast rendering**
+- Only 1 file - Single `color_picker_popup.dart` file
+- Only ~16KB - Ultra compact size
+- Zero external dependencies
+- Minimal memory footprint
+- Fast rendering
 
 ## Features
 
 - Interactive color square with touch/drag support
 - Hue and value sliders
-- Real-time HEX, RGB, HSV display
-- One-click copy to clipboard
+- Optional alpha slider (transparency)
+- Real-time HEX, RGB, HSV (and RGBA/HSVA when alpha is enabled)
+- Optional onChanged callback for real-time updates
+- Lock picker toggle (via switch or tap on color square)
 - Mobile optimized
 - Zero dependencies
 
@@ -33,7 +32,7 @@ This color picker is designed to be as lightweight as possible while maintaining
 
 ```yaml
 dependencies:
-  collor: ^1.1.0
+  collor: ^1.1.2
 ```
 
 ## Usage
@@ -58,9 +57,13 @@ class _MyAppState extends State<MyApp> {
         onColorSelected: (color) {
           setState(() => _selectedColor = color);
         },
+        onChanged: (color) {
+          // Optional: react to live updates
+          // setState(() => _selectedColor = color);
+        },
+        showAlpha: true, // Enable alpha slider
       ),
     );
-    
     if (result != null) {
       setState(() => _selectedColor = result);
     }
@@ -72,7 +75,7 @@ class _MyAppState extends State<MyApp> {
       body: Center(
         child: ElevatedButton(
           onPressed: _showColorPicker,
-          child: Text('Pick Color'),
+          child: const Text('Pick Color'),
         ),
       ),
     );
@@ -82,29 +85,39 @@ class _MyAppState extends State<MyApp> {
 
 ## API
 
-### ColorPickerPopup
-
 ```dart
 ColorPickerPopup({
-  required Color initialColor,    // Starting color
-  required Function(Color) onColorSelected,  // Callback when color is selected
+  required Color initialColor,                // Starting color
+  required Function(Color) onColorSelected,   // Callback when color is selected (confirm)
+  ValueChanged<Color>? onChanged,             // Optional: live updates while dragging/hovering
+  bool showAlpha = false,                     // Optional: show alpha slider (transparency)
 })
 ```
 
-### Getting Color Values
+## Getting Color Values
 
 ```dart
-// HEX
-String hex = '#${color.value.toRadixString(16).substring(2).toUpperCase()}';
+// HEX (AA RR GG BB without alpha prefix)
+String hex = '#${color.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
 
 // RGB
 String rgb = '${(color.r * 255).round()}, ${(color.g * 255).round()}, ${(color.b * 255).round()}';
 
 // HSV
-HSVColor hsv = HSVColor.fromColor(color);
+final hsv = HSVColor.fromColor(color);
 String hsvString = '${hsv.hue.round()}, ${(hsv.saturation * 100).round()}%, ${(hsv.value * 100).round()}%';
+
+// When showAlpha is enabled (RGBA / HSVA)
+int a = (color.toARGB32() >> 24) & 0xFF; // 0..255
+String rgba = '$a, ${(color.r * 255).round()}, ${(color.g * 255).round()}, ${(color.b * 255).round()}';
+String hsva = '${hsv.hue.round()}, ${(hsv.saturation * 100).round()}%, ${(hsv.value * 100).round()}%, ${(100 * (a / 255)).round()}%';
 ```
+
+## Tips
+- Tap on the color square to toggle the picker lock (freeze hover updates).
+- Use the switch under the status indicator to lock/unlock the picker.
+- Use `onChanged` to reflect color live while dragging.
 
 ## License
 
-MIT License 
+MIT License

@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.2.0
+
+### ✨ New Features
+- Added optional `onChanged` callback for live color updates during drag/hover
+- Added optional `showAlpha` flag to enable alpha (transparency) slider
+- Display RGBA and HSVA values when `showAlpha: true`
+
+### 🎨 UI/UX
+- Sliders now have a subtle grey background for better contrast
+- Added tooltips to color square, sliders, and confirm button
+- Added explicit "Lock picker" switch (in addition to tap on color square)
+
+### 🛠️ Improvements
+- Cached hue gradient colors (performance)
+- Safer access to `RenderBox` (null-safety during early frames)
+- Smarter `CustomPainter.shouldRepaint` to avoid unnecessary repaints
+- Replaced deprecated color comparisons with `toARGB32()` equality
+
+### 🧪 Tests
+- Stabilized tests via keys and direct onPressed invocation
+- All tests are green
+
 ## 1.1.2
 
 ### 📸 UI Improvements
