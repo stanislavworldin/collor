@@ -4,8 +4,9 @@ import 'package:collor/collor.dart';
 
 void main() {
   group('ColorPickerPopup Tests', () {
-    testWidgets('should initialize with correct initial color',
-        (WidgetTester tester) async {
+    testWidgets('should initialize with correct initial color', (
+      WidgetTester tester,
+    ) async {
       const Color initialColor = Colors.blue;
 
       await tester.pumpWidget(
@@ -32,15 +33,16 @@ void main() {
       await tester.tap(find.text('Open Color Picker'));
       await tester.pumpAndSettle();
 
-      // Check that popup opened
-      expect(find.text('Select Color'), findsOneWidget);
+      // Check that popup opened (presence of Select button implies open)
+      expect(find.byKey(const ValueKey('select_button')), findsOneWidget);
 
       // Check that select button is present
       expect(find.text('Select'), findsOneWidget);
     });
 
-    testWidgets('should display color values correctly',
-        (WidgetTester tester) async {
+    testWidgets('should display color values correctly', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -71,8 +73,9 @@ void main() {
       expect(find.text('HSV:'), findsOneWidget);
     });
 
-    testWidgets('should call onColorSelected when select button is pressed',
-        (WidgetTester tester) async {
+    testWidgets('should call onColorSelected when select button is pressed', (
+      WidgetTester tester,
+    ) async {
       Color? selectedColor;
 
       await tester.pumpWidget(
@@ -102,8 +105,9 @@ void main() {
       await tester.pumpAndSettle();
 
       // Нажать кнопку, вызывая onPressed напрямую (устойчиво в тестах)
-      final ElevatedButton selectBtn = tester
-          .widget<ElevatedButton>(find.byKey(const ValueKey('select_button')));
+      final ElevatedButton selectBtn = tester.widget<ElevatedButton>(
+        find.byKey(const ValueKey('select_button')),
+      );
       selectBtn.onPressed?.call();
       await tester.pumpAndSettle();
 
@@ -111,8 +115,9 @@ void main() {
       expect(selectedColor, isNotNull);
     });
 
-    testWidgets('should close dialog when select button is pressed',
-        (WidgetTester tester) async {
+    testWidgets('should close dialog when select button is pressed', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -138,20 +143,22 @@ void main() {
       await tester.pumpAndSettle();
 
       // Check that popup is open
-      expect(find.text('Select Color'), findsOneWidget);
+      expect(find.byKey(const ValueKey('select_button')), findsOneWidget);
 
       // Нажать кнопку, вызывая onPressed напрямую (устойчиво в тестах)
-      final ElevatedButton selectBtn = tester
-          .widget<ElevatedButton>(find.byKey(const ValueKey('select_button')));
+      final ElevatedButton selectBtn = tester.widget<ElevatedButton>(
+        find.byKey(const ValueKey('select_button')),
+      );
       selectBtn.onPressed?.call();
       await tester.pumpAndSettle();
 
       // Check that popup is closed
-      expect(find.text('Select Color'), findsNothing);
+      expect(find.byKey(const ValueKey('select_button')), findsNothing);
     });
 
-    testWidgets('should update color when hue slider is dragged',
-        (WidgetTester tester) async {
+    testWidgets('should update color when hue slider is dragged', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -187,8 +194,9 @@ void main() {
       expect(find.text('HSV:'), findsOneWidget);
     });
 
-    testWidgets('should update color when value slider is dragged',
-        (WidgetTester tester) async {
+    testWidgets('should update color when value slider is dragged', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -225,8 +233,9 @@ void main() {
       expect(find.text('HSV:'), findsOneWidget);
     });
 
-    testWidgets('should update color when color square is tapped',
-        (WidgetTester tester) async {
+    testWidgets('should update color when color square is tapped', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -262,8 +271,9 @@ void main() {
       expect(find.text('HSV:'), findsOneWidget);
     });
 
-    testWidgets('should show fixed state when color square is double tapped',
-        (WidgetTester tester) async {
+    testWidgets('should show fixed state when color square is double tapped', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -302,8 +312,11 @@ void main() {
 
   group('ColorPickerPainter Tests', () {
     test('should paint circle indicator correctly', () {
-      final painter =
-          ColorPickerPainter(const Offset(100, 100), Colors.red, false);
+      final painter = ColorPickerPainter(
+        const Offset(100, 100),
+        Colors.red,
+        false,
+      );
 
       // При одинаковых параметрах перерисовывать не нужно
       expect(painter.shouldRepaint(painter), false);

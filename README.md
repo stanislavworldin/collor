@@ -32,7 +32,7 @@ This color picker is designed to be as lightweight as possible while maintaining
 
 ```yaml
 dependencies:
-  collor: ^1.1.2
+  collor: ^1.2.1
 ```
 
 ## Usage
@@ -97,8 +97,8 @@ ColorPickerPopup({
 ## Getting Color Values
 
 ```dart
-// HEX (AA RR GG BB without alpha prefix)
-String hex = '#${color.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
+// HEX (AARRGGBB -> без префикса альфы)
+String hex = '#${color.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
 
 // RGB
 String rgb = '${(color.r * 255).round()}, ${(color.g * 255).round()}, ${(color.b * 255).round()}';
@@ -108,7 +108,7 @@ final hsv = HSVColor.fromColor(color);
 String hsvString = '${hsv.hue.round()}, ${(hsv.saturation * 100).round()}%, ${(hsv.value * 100).round()}%';
 
 // When showAlpha is enabled (RGBA / HSVA)
-int a = (color.toARGB32() >> 24) & 0xFF; // 0..255
+int a = (color.a * 255).round() & 0xff; // 0..255
 String rgba = '$a, ${(color.r * 255).round()}, ${(color.g * 255).round()}, ${(color.b * 255).round()}';
 String hsva = '${hsv.hue.round()}, ${(hsv.saturation * 100).round()}%, ${(hsv.value * 100).round()}%, ${(100 * (a / 255)).round()}%';
 ```

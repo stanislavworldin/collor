@@ -46,7 +46,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   // Функция для получения RGBA/HSVA значений
   Map<String, int> _getRGBAValues(Color color) {
-    final int a = (color.toARGB32() >> 24) & 0xFF;
+    final int a = (color.a * 255.0).round() & 0xFF;
     return {
       'a': a,
       'r': (color.r * 255.0).round(),
@@ -57,8 +57,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Map<String, int> _getHSVAValues(Color color) {
     final HSVColor hsv = HSVColor.fromColor(color);
-    final int aPercent =
-        (((color.toARGB32() >> 24) & 0xFF) * 100 / 255).round();
+    final int aPercent = ((color.a * 100.0)).round();
     return {
       'h': hsv.hue.round(),
       's': (hsv.saturation * 100).round(),
@@ -118,10 +117,7 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            const Text(
-              'Select a color:',
-              style: TextStyle(fontSize: 24),
-            ),
+            const Text('Select a color:', style: TextStyle(fontSize: 24)),
             const SizedBox(height: 20),
 
             // Отображение выбранного цвета
@@ -153,16 +149,19 @@ class _MyHomePageState extends State<MyHomePage> {
                       Row(
                         children: [
                           Text(
-                              '#${_selectedColor.toARGB32().toRadixString(16).substring(2).toUpperCase()}'),
+                              '#${_selectedColor.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}'),
                           const SizedBox(width: 8),
                           GestureDetector(
                             onTap: () => _copyToClipboard(
-                                '#${_selectedColor.toARGB32().toRadixString(16).substring(2).toUpperCase()}'),
-                            child: const Text('Copy',
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.blue,
-                                    fontWeight: FontWeight.w500)),
+                                '#${_selectedColor.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}'),
+                            child: const Text(
+                              'Copy',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.blue,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -182,11 +181,14 @@ class _MyHomePageState extends State<MyHomePage> {
                           GestureDetector(
                             onTap: () => _copyToClipboard(
                                 '${(_selectedColor.r * 255.0).round()}, ${(_selectedColor.g * 255.0).round()}, ${(_selectedColor.b * 255.0).round()}'),
-                            child: const Text('Copy',
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.blue,
-                                    fontWeight: FontWeight.w500)),
+                            child: const Text(
+                              'Copy',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.blue,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -201,16 +203,21 @@ class _MyHomePageState extends State<MyHomePage> {
                       Row(
                         children: [
                           Text(
-                              '${_getHSVValues(_selectedColor)['h']}, ${_getHSVValues(_selectedColor)['s']}%, ${_getHSVValues(_selectedColor)['v']}%'),
+                            '${_getHSVValues(_selectedColor)['h']}, ${_getHSVValues(_selectedColor)['s']}%, ${_getHSVValues(_selectedColor)['v']}%',
+                          ),
                           const SizedBox(width: 8),
                           GestureDetector(
                             onTap: () => _copyToClipboard(
-                                '${_getHSVValues(_selectedColor)['h']}, ${_getHSVValues(_selectedColor)['s']}%, ${_getHSVValues(_selectedColor)['v']}%'),
-                            child: const Text('Copy',
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.blue,
-                                    fontWeight: FontWeight.w500)),
+                              '${_getHSVValues(_selectedColor)['h']}, ${_getHSVValues(_selectedColor)['s']}%, ${_getHSVValues(_selectedColor)['v']}%',
+                            ),
+                            child: const Text(
+                              'Copy',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.blue,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -225,16 +232,21 @@ class _MyHomePageState extends State<MyHomePage> {
                       Row(
                         children: [
                           Text(
-                              '${_getRGBAValues(_selectedColor)['a']}, ${_getRGBAValues(_selectedColor)['r']}, ${_getRGBAValues(_selectedColor)['g']}, ${_getRGBAValues(_selectedColor)['b']}'),
+                            '${_getRGBAValues(_selectedColor)['a']}, ${_getRGBAValues(_selectedColor)['r']}, ${_getRGBAValues(_selectedColor)['g']}, ${_getRGBAValues(_selectedColor)['b']}',
+                          ),
                           const SizedBox(width: 8),
                           GestureDetector(
                             onTap: () => _copyToClipboard(
-                                '${_getRGBAValues(_selectedColor)['a']}, ${_getRGBAValues(_selectedColor)['r']}, ${_getRGBAValues(_selectedColor)['g']}, ${_getRGBAValues(_selectedColor)['b']}'),
-                            child: const Text('Copy',
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.blue,
-                                    fontWeight: FontWeight.w500)),
+                              '${_getRGBAValues(_selectedColor)['a']}, ${_getRGBAValues(_selectedColor)['r']}, ${_getRGBAValues(_selectedColor)['g']}, ${_getRGBAValues(_selectedColor)['b']}',
+                            ),
+                            child: const Text(
+                              'Copy',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.blue,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -249,16 +261,21 @@ class _MyHomePageState extends State<MyHomePage> {
                       Row(
                         children: [
                           Text(
-                              '${_getHSVAValues(_selectedColor)['h']}, ${_getHSVAValues(_selectedColor)['s']}%, ${_getHSVAValues(_selectedColor)['v']}%, ${_getHSVAValues(_selectedColor)['a']}%'),
+                            '${_getHSVAValues(_selectedColor)['h']}, ${_getHSVAValues(_selectedColor)['s']}%, ${_getHSVAValues(_selectedColor)['v']}%, ${_getHSVAValues(_selectedColor)['a']}%',
+                          ),
                           const SizedBox(width: 8),
                           GestureDetector(
                             onTap: () => _copyToClipboard(
-                                '${_getHSVAValues(_selectedColor)['h']}, ${_getHSVAValues(_selectedColor)['s']}%, ${_getHSVAValues(_selectedColor)['v']}%, ${_getHSVAValues(_selectedColor)['a']}%'),
-                            child: const Text('Copy',
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.blue,
-                                    fontWeight: FontWeight.w500)),
+                              '${_getHSVAValues(_selectedColor)['h']}, ${_getHSVAValues(_selectedColor)['s']}%, ${_getHSVAValues(_selectedColor)['v']}%, ${_getHSVAValues(_selectedColor)['a']}%',
+                            ),
+                            child: const Text(
+                              'Copy',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.blue,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -275,13 +292,12 @@ class _MyHomePageState extends State<MyHomePage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: _selectedColor,
                 foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
+                ),
               ),
-              child: const Text(
-                'Select Color',
-                style: TextStyle(fontSize: 18),
-              ),
+              child: const Text('Select Color', style: TextStyle(fontSize: 18)),
             ),
           ],
         ),

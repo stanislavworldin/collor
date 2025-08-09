@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 
+/// A simple, dependency-free color picker dialog with hue/value sliders
+/// and an optional alpha slider.
 class ColorPickerPopup extends StatefulWidget {
   final Color initialColor;
-  final Function(Color) onColorSelected;
+
+  /// Called when user confirms selection via the Select button
+  final ValueChanged<Color> onColorSelected;
   // Вызывается при каждом изменении цвета (drag/hover/тап)
   final ValueChanged<Color>? onChanged;
   // Показать слайдер альфа-канала и включить расчёт RGBA/HSVA
@@ -38,9 +42,9 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
   double get _sliderCenterY => _innerSliderHeight / 2;
   // Кешированный список цветов для градиента оттенков (360 значений)
   static final List<Color> _hueGradientColors = List<Color>.generate(
-      360,
-      (int index) =>
-          HSVColor.fromAHSV(1.0, index.toDouble(), 1.0, 1.0).toColor());
+    360,
+    (int index) => HSVColor.fromAHSV(1.0, index.toDouble(), 1.0, 1.0).toColor(),
+  );
 
   @override
   void initState() {
@@ -53,12 +57,18 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
   void _initializePositions() {
     _colorPickerPosition = Offset(_saturation * _size, (1.0 - _value) * _size);
     const double radius = 10.0; // начальный радиус индикатора
-    final double hueX = (_hue / 360.0 * _innerSliderWidth)
-        .clamp(radius, _innerSliderWidth - radius);
-    final double valX =
-        (_value * _innerSliderWidth).clamp(radius, _innerSliderWidth - radius);
-    final double alpX =
-        (_alpha * _innerSliderWidth).clamp(radius, _innerSliderWidth - radius);
+    final double hueX = (_hue / 360.0 * _innerSliderWidth).clamp(
+      radius,
+      _innerSliderWidth - radius,
+    );
+    final double valX = (_value * _innerSliderWidth).clamp(
+      radius,
+      _innerSliderWidth - radius,
+    );
+    final double alpX = (_alpha * _innerSliderWidth).clamp(
+      radius,
+      _innerSliderWidth - radius,
+    );
     _hueSliderPosition = Offset(hueX, _sliderCenterY);
     _valueSliderPosition = Offset(valX, _sliderCenterY);
     _alphaSliderPosition = Offset(alpX, _sliderCenterY);
@@ -75,14 +85,19 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
   }
 
   void _updateColorFromHSV() {
-    final Color newColor =
-        HSVColor.fromAHSV(_alpha, _hue, _saturation, _value).toColor();
+    final Color newColor = HSVColor.fromAHSV(
+      _alpha,
+      _hue,
+      _saturation,
+      _value,
+    ).toColor();
     if (newColor.toARGB32() == _selectedColor.toARGB32()) {
       return;
     }
     _selectedColor = newColor;
     debugPrint(
-        'ColorPickerPopup: updated color from HSV -> H:${_hue.toStringAsFixed(1)} S:${(_saturation * 100).toStringAsFixed(1)}% V:${(_value * 100).toStringAsFixed(1)}% => ${_selectedColor.toString()}');
+      'ColorPickerPopup: updated color from HSV -> H:${_hue.toStringAsFixed(1)} S:${(_saturation * 100).toStringAsFixed(1)}% V:${(_value * 100).toStringAsFixed(1)}% => ${_selectedColor.toString()}',
+    );
     if (widget.onChanged != null) {
       widget.onChanged!.call(_selectedColor);
     }
@@ -149,7 +164,8 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
 
   void _onSliderPanStart(DragStartDetails details, bool isHueSlider) {
     debugPrint(
-        'ColorPickerPopup: ${isHueSlider ? "hue" : "value"} slider drag started');
+      'ColorPickerPopup: ${isHueSlider ? "hue" : "value"} slider drag started',
+    );
     setState(() {
       _isDragging = true;
     });
@@ -226,7 +242,7 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
                     color: Colors.black.withValues(alpha: 0.2),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
-                  )
+                  ),
                 ]
               : null,
         ),
@@ -240,9 +256,7 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
             onPanStart: (details) => _onSliderPanStart(details, isHueSlider),
             onPanUpdate: (details) => _onSliderPanUpdate(details, isHueSlider),
             onPanEnd: (details) => _onSliderPanEnd(details, isHueSlider),
-            child: CustomPaint(
-              painter: SliderPainter(position, _isDragging),
-            ),
+            child: CustomPaint(painter: SliderPainter(position, _isDragging)),
           ),
         ),
       ),
@@ -268,7 +282,7 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
                     color: Colors.black.withValues(alpha: 0.2),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
-                  )
+                  ),
                 ]
               : null,
         ),
@@ -300,21 +314,31 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
       ),
       child: Column(
         children: [
-          _buildInfoRow('HEX:',
-              '#${_selectedColor.toARGB32().toRadixString(16).substring(2).toUpperCase()}'),
+          _buildInfoRow(
+            'HEX:',
+            '#${_selectedColor.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}',
+          ),
           const SizedBox(height: 4),
-          _buildInfoRow('RGB:',
-              '${(_selectedColor.r * 255.0).round()}, ${(_selectedColor.g * 255.0).round()}, ${(_selectedColor.b * 255.0).round()}'),
+          _buildInfoRow(
+            'RGB:',
+            '${(_selectedColor.r * 255.0).round()}, ${(_selectedColor.g * 255.0).round()}, ${(_selectedColor.b * 255.0).round()}',
+          ),
           const SizedBox(height: 4),
-          _buildInfoRow('HSV:',
-              '${_hue.round()}, ${(_saturation * 100).round()}%, ${(_value * 100).round()}%'),
+          _buildInfoRow(
+            'HSV:',
+            '${_hue.round()}, ${(_saturation * 100).round()}%, ${(_value * 100).round()}%',
+          ),
           if (widget.showAlpha) ...[
             const SizedBox(height: 4),
-            _buildInfoRow('RGBA:',
-                '${((_selectedColor.toARGB32() >> 24) & 0xFF)}, ${(_selectedColor.r * 255.0).round()}, ${(_selectedColor.g * 255.0).round()}, ${(_selectedColor.b * 255.0).round()}'),
+            _buildInfoRow(
+              'RGBA:',
+              '${((_selectedColor.toARGB32() >> 24) & 0xFF)}, ${(_selectedColor.r * 255.0).round()}, ${(_selectedColor.g * 255.0).round()}, ${(_selectedColor.b * 255.0).round()}',
+            ),
             const SizedBox(height: 4),
-            _buildInfoRow('HSVA:',
-                '${_hue.round()}, ${(_saturation * 100).round()}%, ${(_value * 100).round()}%, ${(100 * _alpha).round()}%'),
+            _buildInfoRow(
+              'HSVA:',
+              '${_hue.round()}, ${(_saturation * 100).round()}%, ${(_value * 100).round()}%, ${(100 * _alpha).round()}%',
+            ),
           ],
         ],
       ),
@@ -340,9 +364,7 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Select Color',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 16),
+              // Заголовок удалён по требованию
 
               // Цветовой квадрат
               Tooltip(
@@ -361,7 +383,7 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
                         end: Alignment.topRight,
                         colors: [
                           Colors.white,
-                          HSVColor.fromAHSV(1.0, _hue, 1.0, 1.0).toColor()
+                          HSVColor.fromAHSV(1.0, _hue, 1.0, 1.0).toColor(),
                         ],
                       ),
                       boxShadow: _isDragging
@@ -370,14 +392,14 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
                                 color: Colors.black.withValues(alpha: 0.3),
                                 blurRadius: 8,
                                 offset: const Offset(0, 4),
-                              )
+                              ),
                             ]
                           : [
                               BoxShadow(
                                 color: Colors.black.withValues(alpha: 0.1),
                                 blurRadius: 4,
                                 offset: const Offset(0, 2),
-                              )
+                              ),
                             ],
                     ),
                     child: Container(
@@ -395,8 +417,12 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
                         onPanUpdate: _onColorPickerDragUpdate,
                         onPanEnd: _onColorPickerDragEnd,
                         child: CustomPaint(
-                            painter: ColorPickerPainter(_colorPickerPosition,
-                                _selectedColor, _isDragging)),
+                          painter: ColorPickerPainter(
+                            _colorPickerPosition,
+                            _selectedColor,
+                            _isDragging,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -407,8 +433,10 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
               // Индикатор состояния
               Container(
                 key: const ValueKey('state_indicator'),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: _isColorPickerFixed
                       ? Colors.green[100]
@@ -427,32 +455,6 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
-              // Иконка замка (упрощённый контрол, emoji для совместимости)
-              Center(
-                child: Tooltip(
-                  message:
-                      _isColorPickerFixed ? 'Unlock picker' : 'Lock picker',
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _isColorPickerFixed = !_isColorPickerFixed;
-                        debugPrint(
-                            'ColorPickerPopup: lock toggled via emoji -> $_isColorPickerFixed');
-                      });
-                    },
-                    child: Text(
-                      _isColorPickerFixed ? '🔒' : '🔓',
-                      style: TextStyle(
-                        fontSize: 22,
-                        color: _isColorPickerFixed
-                            ? Colors.green[700]
-                            : Colors.blue[700],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
               const SizedBox(height: 12),
 
               // Ползунки
@@ -465,7 +467,7 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
               _buildSlider(
                 colors: [
                   Colors.black,
-                  HSVColor.fromAHSV(1.0, _hue, _saturation, 1.0).toColor()
+                  HSVColor.fromAHSV(1.0, _hue, _saturation, 1.0).toColor(),
                 ],
                 position: _valueSliderPosition,
                 isHueSlider: false,
@@ -490,7 +492,8 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
                     key: const ValueKey('select_button'),
                     onPressed: () {
                       debugPrint(
-                          'ColorPickerPopup: color selected ${_selectedColor.toString()}');
+                        'ColorPickerPopup: color selected ${_selectedColor.toString()}',
+                      );
                       widget.onColorSelected(_selectedColor);
                       Navigator.of(context).pop(_selectedColor);
                     },

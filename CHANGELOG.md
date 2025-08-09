@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.2.1
+
+### 🎨 UI/UX
+- Removed lock icon control from the dialog
+- Removed top title text ("Select Color") to keep UI minimal
+
+### 🛠️ Improvements
+- Migrated to stable color APIs across codebase: `.toARGB32()`, `.r/.g/.b/.a`, `.withValues()`
+- Standardized HEX/RGB/RGBA/HSVA formatting in UI and examples
+- Minor code cleanup, added concise doc comments
+
+### 🧪 Tests & Quality
+- Updated tests to not rely on removed title text
+- `flutter analyze` reports no issues
+- All tests are green
+
 ## 1.2.0
 
 ### ✨ New Features
