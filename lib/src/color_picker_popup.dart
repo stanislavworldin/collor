@@ -30,16 +30,19 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
   late double _alpha;
   late Offset _colorPickerPosition, _hueSliderPosition, _valueSliderPosition;
   late Offset _alphaSliderPosition;
-  final GlobalKey _colorPickerKey = GlobalKey();
   bool _isColorPickerFixed = false;
   bool _isDragging = false;
 
   static const double _size = 200.0;
   static const double _sliderHeight = 30.0;
   static const double _sliderMargin = 2.0;
+  static const double _sliderDragRadius = 14.0;
   double get _innerSliderWidth => _size - (_sliderMargin * 2);
   double get _innerSliderHeight => _sliderHeight - (_sliderMargin * 2);
   double get _sliderCenterY => _innerSliderHeight / 2;
+  double get _sliderTrackStart => _sliderDragRadius;
+  double get _sliderTrackEnd => _innerSliderWidth - _sliderDragRadius;
+  double get _sliderTrackWidth => _sliderTrackEnd - _sliderTrackStart;
   // Кешированный список цветов для градиента оттенков (360 значений)
   static final List<Color> _hueGradientColors = List<Color>.generate(
     360,
@@ -54,24 +57,37 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
     _initializePositions();
   }
 
+  @override
+  void didUpdateWidget(covariant ColorPickerPopup oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialColor.toARGB32() != widget.initialColor.toARGB32()) {
+      setState(() {
+        _selectedColor = widget.initialColor;
+        _updateHSVFromColor(_selectedColor);
+        _initializePositions();
+      });
+    }
+  }
+
   void _initializePositions() {
     _colorPickerPosition = Offset(_saturation * _size, (1.0 - _value) * _size);
-    const double radius = 10.0; // начальный радиус индикатора
-    final double hueX = (_hue / 360.0 * _innerSliderWidth).clamp(
-      radius,
-      _innerSliderWidth - radius,
-    );
-    final double valX = (_value * _innerSliderWidth).clamp(
-      radius,
-      _innerSliderWidth - radius,
-    );
-    final double alpX = (_alpha * _innerSliderWidth).clamp(
-      radius,
-      _innerSliderWidth - radius,
-    );
-    _hueSliderPosition = Offset(hueX, _sliderCenterY);
-    _valueSliderPosition = Offset(valX, _sliderCenterY);
-    _alphaSliderPosition = Offset(alpX, _sliderCenterY);
+    _hueSliderPosition = Offset(_sliderXFromHue(_hue), _sliderCenterY);
+    _valueSliderPosition = Offset(_sliderXFromUnit(_value), _sliderCenterY);
+    _alphaSliderPosition = Offset(_sliderXFromUnit(_alpha), _sliderCenterY);
+  }
+
+  double _sliderXFromUnit(double value) {
+    final double normalized = value.clamp(0.0, 1.0);
+    return _sliderTrackStart + (normalized * _sliderTrackWidth);
+  }
+
+  double _sliderXFromHue(double hue) {
+    final double normalized = hue.clamp(0.0, 360.0) / 360.0;
+    return _sliderXFromUnit(normalized);
+  }
+
+  double _unitFromSliderX(double x) {
+    return ((x - _sliderTrackStart) / _sliderTrackWidth).clamp(0.0, 1.0);
   }
 
   void _updateHSVFromColor(Color color) {
@@ -80,11 +96,11 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
     _saturation = hsv.saturation;
     _value = hsv.value;
     // Безопасно получаем альфу (0..1)
-    final int a8 = color.toARGB32() >> 24;
+    final int a8 = (color.toARGB32() >> 24) & 0xFF;
     _alpha = a8 / 255.0;
   }
 
-  void _updateColorFromHSV() {
+  bool _updateColorFromHSV() {
     final Color newColor = HSVColor.fromAHSV(
       _alpha,
       _hue,
@@ -92,132 +108,141 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
       _value,
     ).toColor();
     if (newColor.toARGB32() == _selectedColor.toARGB32()) {
-      return;
+      return false;
     }
     _selectedColor = newColor;
-    debugPrint(
-      'ColorPickerPopup: updated color from HSV -> H:${_hue.toStringAsFixed(1)} S:${(_saturation * 100).toStringAsFixed(1)}% V:${(_value * 100).toStringAsFixed(1)}% => ${_selectedColor.toString()}',
-    );
-    if (widget.onChanged != null) {
-      widget.onChanged!.call(_selectedColor);
-    }
+    widget.onChanged?.call(_selectedColor);
+    return true;
   }
 
-  void _updateColorPickerPosition(Offset localPosition) {
+  bool _updateColorPickerPosition(Offset localPosition) {
     final double newX = localPosition.dx.clamp(0.0, _size);
     final double newY = localPosition.dy.clamp(0.0, _size);
-    _colorPickerPosition = Offset(newX, newY);
+    final Offset newPosition = Offset(newX, newY);
+    if (newPosition == _colorPickerPosition) {
+      return false;
+    }
+    _colorPickerPosition = newPosition;
     _saturation = newX / _size;
     _value = 1.0 - (newY / _size);
     _updateColorFromHSV();
+    return true;
+  }
+
+  bool _updateSliderByPosition(double dx, {required bool isHueSlider}) {
+    final double newX = dx.clamp(_sliderTrackStart, _sliderTrackEnd);
+    if (isHueSlider) {
+      if ((newX - _hueSliderPosition.dx).abs() < 0.001) {
+        return false;
+      }
+      _hueSliderPosition = Offset(newX, _sliderCenterY);
+      _hue = _unitFromSliderX(newX) * 360.0;
+    } else {
+      if ((newX - _valueSliderPosition.dx).abs() < 0.001) {
+        return false;
+      }
+      _valueSliderPosition = Offset(newX, _sliderCenterY);
+      _value = _unitFromSliderX(newX);
+    }
+    _updateColorFromHSV();
+    return true;
+  }
+
+  bool _updateAlphaByPosition(double dx) {
+    final double newX = dx.clamp(_sliderTrackStart, _sliderTrackEnd);
+    if ((newX - _alphaSliderPosition.dx).abs() < 0.001) {
+      return false;
+    }
+    _alphaSliderPosition = Offset(newX, _sliderCenterY);
+    _alpha = _unitFromSliderX(newX);
+    _updateColorFromHSV();
+    return true;
   }
 
   void _onColorPickerHover(PointerEvent event) {
-    if (!_isColorPickerFixed) {
-      setState(() {
-        final RenderObject? ro =
-            _colorPickerKey.currentContext?.findRenderObject();
-        if (ro is RenderBox) {
-          _updateColorPickerPosition(ro.globalToLocal(event.position));
-        } else {
-          debugPrint('ColorPickerPopup: renderObject not ready on hover');
-        }
-      });
+    if (_isColorPickerFixed || _isDragging) {
+      return;
+    }
+    if (_updateColorPickerPosition(event.localPosition)) {
+      setState(() {});
     }
   }
 
   void _onColorPickerTap(TapDownDetails details) {
     setState(() {
-      final RenderObject? ro =
-          _colorPickerKey.currentContext?.findRenderObject();
-      if (ro is RenderBox) {
-        _updateColorPickerPosition(ro.globalToLocal(details.globalPosition));
-      } else {
-        debugPrint('ColorPickerPopup: renderObject not ready on tap');
-      }
+      _updateColorPickerPosition(details.localPosition);
       _isColorPickerFixed = !_isColorPickerFixed;
-      debugPrint('ColorPickerPopup: fixed state -> $_isColorPickerFixed');
     });
   }
 
   void _onColorPickerDragStart(DragStartDetails details) {
+    if (_isDragging) {
+      return;
+    }
     setState(() {
       _isDragging = true;
     });
   }
 
   void _onColorPickerDragUpdate(DragUpdateDetails details) {
-    setState(() {
-      final RenderObject? ro =
-          _colorPickerKey.currentContext?.findRenderObject();
-      if (ro is RenderBox) {
-        _updateColorPickerPosition(ro.globalToLocal(details.globalPosition));
-      }
-    });
+    if (_updateColorPickerPosition(details.localPosition)) {
+      setState(() {});
+    }
   }
 
   void _onColorPickerDragEnd(DragEndDetails details) {
+    if (!_isDragging) {
+      return;
+    }
     setState(() {
       _isDragging = false;
     });
   }
 
   void _onSliderPanStart(DragStartDetails details, bool isHueSlider) {
-    debugPrint(
-      'ColorPickerPopup: ${isHueSlider ? "hue" : "value"} slider drag started',
-    );
+    if (_isDragging) {
+      return;
+    }
     setState(() {
       _isDragging = true;
     });
   }
 
   void _onSliderPanUpdate(DragUpdateDetails details, bool isHueSlider) {
-    setState(() {
-      final currentPosition =
-          isHueSlider ? _hueSliderPosition : _valueSliderPosition;
-      final double rawX = currentPosition.dx + details.delta.dx;
-      final double radius = _isDragging ? 14.0 : 10.0;
-      final double newX = rawX.clamp(radius, _innerSliderWidth - radius);
-
-      if (isHueSlider) {
-        _hueSliderPosition = Offset(newX, _sliderCenterY);
-        _hue = (newX - radius) / (_innerSliderWidth - 2 * radius) * 360.0;
-        _hue = _hue.clamp(0.0, 360.0);
-      } else {
-        _valueSliderPosition = Offset(newX, _sliderCenterY);
-        _value = (newX - radius) / (_innerSliderWidth - 2 * radius);
-        _value = _value.clamp(0.0, 1.0);
-      }
-      _updateColorFromHSV();
-    });
+    if (_updateSliderByPosition(details.localPosition.dx,
+        isHueSlider: isHueSlider)) {
+      setState(() {});
+    }
   }
 
   void _onSliderPanEnd(DragEndDetails details, bool isHueSlider) {
+    if (!_isDragging) {
+      return;
+    }
     setState(() {
       _isDragging = false;
     });
   }
 
   void _onAlphaPanStart(DragStartDetails details) {
-    debugPrint('ColorPickerPopup: alpha slider drag started');
+    if (_isDragging) {
+      return;
+    }
     setState(() {
       _isDragging = true;
     });
   }
 
   void _onAlphaPanUpdate(DragUpdateDetails details) {
-    setState(() {
-      final double rawX = _alphaSliderPosition.dx + details.delta.dx;
-      final double radius = _isDragging ? 14.0 : 10.0;
-      final double newX = rawX.clamp(radius, _innerSliderWidth - radius);
-      _alphaSliderPosition = Offset(newX, _sliderCenterY);
-      _alpha = (newX - radius) / (_innerSliderWidth - 2 * radius);
-      _alpha = _alpha.clamp(0.0, 1.0);
-      _updateColorFromHSV();
-    });
+    if (_updateAlphaByPosition(details.localPosition.dx)) {
+      setState(() {});
+    }
   }
 
   void _onAlphaPanEnd(DragEndDetails details) {
+    if (!_isDragging) {
+      return;
+    }
     setState(() {
       _isDragging = false;
     });
@@ -227,6 +252,7 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
     required List<Color> colors,
     required Offset position,
     required bool isHueSlider,
+    required Key sliderKey,
   }) {
     return Tooltip(
       message: isHueSlider ? 'Hue' : 'Value',
@@ -253,10 +279,16 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
             gradient: LinearGradient(colors: colors),
           ),
           child: GestureDetector(
+            key: sliderKey,
+            behavior: HitTestBehavior.opaque,
             onPanStart: (details) => _onSliderPanStart(details, isHueSlider),
             onPanUpdate: (details) => _onSliderPanUpdate(details, isHueSlider),
             onPanEnd: (details) => _onSliderPanEnd(details, isHueSlider),
-            child: CustomPaint(painter: SliderPainter(position, _isDragging)),
+            child: RepaintBoundary(
+              child: CustomPaint(
+                painter: SliderPainter(position, _isDragging),
+              ),
+            ),
           ),
         ),
       ),
@@ -293,11 +325,15 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
             gradient: LinearGradient(colors: colors),
           ),
           child: GestureDetector(
+            key: const ValueKey('alpha_slider_gesture'),
+            behavior: HitTestBehavior.opaque,
             onPanStart: _onAlphaPanStart,
             onPanUpdate: _onAlphaPanUpdate,
             onPanEnd: _onAlphaPanEnd,
-            child: CustomPaint(
-              painter: SliderPainter(_alphaSliderPosition, _isDragging),
+            child: RepaintBoundary(
+              child: CustomPaint(
+                painter: SliderPainter(_alphaSliderPosition, _isDragging),
+              ),
             ),
           ),
         ),
@@ -306,6 +342,12 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
   }
 
   Widget _buildColorInfo() {
+    final int argb = _selectedColor.toARGB32();
+    final int alpha = (argb >> 24) & 0xFF;
+    final int red = (argb >> 16) & 0xFF;
+    final int green = (argb >> 8) & 0xFF;
+    final int blue = argb & 0xFF;
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -316,12 +358,12 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
         children: [
           _buildInfoRow(
             'HEX:',
-            '#${_selectedColor.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}',
+            '#${argb.toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}',
           ),
           const SizedBox(height: 4),
           _buildInfoRow(
             'RGB:',
-            '${(_selectedColor.r * 255.0).round()}, ${(_selectedColor.g * 255.0).round()}, ${(_selectedColor.b * 255.0).round()}',
+            '$red, $green, $blue',
           ),
           const SizedBox(height: 4),
           _buildInfoRow(
@@ -332,7 +374,7 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
             const SizedBox(height: 4),
             _buildInfoRow(
               'RGBA:',
-              '${((_selectedColor.toARGB32() >> 24) & 0xFF)}, ${(_selectedColor.r * 255.0).round()}, ${(_selectedColor.g * 255.0).round()}, ${(_selectedColor.b * 255.0).round()}',
+              '$alpha, $red, $green, $blue',
             ),
             const SizedBox(height: 4),
             _buildInfoRow(
@@ -347,8 +389,18 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
 
   Widget _buildInfoRow(String label, String value) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [Text(label), Text(value)],
+      children: [
+        Text(label),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
+        ),
+      ],
     );
   }
 
@@ -373,7 +425,6 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
                   key: const ValueKey('color_square'),
                   onHover: _onColorPickerHover,
                   child: Container(
-                    key: _colorPickerKey,
                     width: _size,
                     height: _size,
                     decoration: BoxDecoration(
@@ -416,11 +467,14 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
                         onPanStart: _onColorPickerDragStart,
                         onPanUpdate: _onColorPickerDragUpdate,
                         onPanEnd: _onColorPickerDragEnd,
-                        child: CustomPaint(
-                          painter: ColorPickerPainter(
-                            _colorPickerPosition,
-                            _selectedColor,
-                            _isDragging,
+                        behavior: HitTestBehavior.opaque,
+                        child: RepaintBoundary(
+                          child: CustomPaint(
+                            painter: ColorPickerPainter(
+                              _colorPickerPosition,
+                              _selectedColor,
+                              _isDragging,
+                            ),
                           ),
                         ),
                       ),
@@ -462,6 +516,7 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
                 colors: _hueGradientColors,
                 position: _hueSliderPosition,
                 isHueSlider: true,
+                sliderKey: const ValueKey('hue_slider_gesture'),
               ),
               const SizedBox(height: 12),
               _buildSlider(
@@ -471,6 +526,7 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
                 ],
                 position: _valueSliderPosition,
                 isHueSlider: false,
+                sliderKey: const ValueKey('value_slider_gesture'),
               ),
               if (widget.showAlpha) ...[
                 const SizedBox(height: 12),
@@ -491,9 +547,6 @@ class _ColorPickerPopupState extends State<ColorPickerPopup> {
                   child: ElevatedButton(
                     key: const ValueKey('select_button'),
                     onPressed: () {
-                      debugPrint(
-                        'ColorPickerPopup: color selected ${_selectedColor.toString()}',
-                      );
                       widget.onColorSelected(_selectedColor);
                       Navigator.of(context).pop(_selectedColor);
                     },

@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.2.2
+
+### ⚡ Performance
+- Reduced hot-path overhead for hover/drag updates by removing repeated render object lookups
+- Avoided redundant state updates when pointer position did not change
+- Added `RepaintBoundary` around custom-painted interactive areas
+
+### 🛡️ Reliability
+- Synced internal picker state when `initialColor` changes in parent widgets
+- Stabilized slider math for hue/value/alpha mappings and clamping behavior
+- Improved alpha extraction safety from ARGB
+- Prevented text overflow in long color info rows
+
+### 🧪 Tests
+- Added widget test covering `initialColor` synchronization
+- Updated slider interaction tests to use stable key-based finders
+- `flutter analyze` clean and all tests passing
+
 ## 1.2.1
 
 ### 🎨 UI/UX

@@ -115,7 +115,6 @@ String hsva = '${hsv.hue.round()}, ${(hsv.saturation * 100).round()}%, ${(hsv.va
 
 ## Tips
 - Tap on the color square to toggle the picker lock (freeze hover updates).
-- Use the switch under the status indicator to lock/unlock the picker.
 - Use `onChanged` to reflect color live while dragging.
 
 ## License

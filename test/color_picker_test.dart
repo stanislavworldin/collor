@@ -73,6 +73,44 @@ void main() {
       expect(find.text('HSV:'), findsOneWidget);
     });
 
+    testWidgets('should sync color when initialColor changes', (
+      WidgetTester tester,
+    ) async {
+      Color currentColor = const Color(0xFFFF0000);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: StatefulBuilder(
+            builder: (context, setState) => Scaffold(
+              body: ListView(
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        currentColor = const Color(0xFF0000FF);
+                      });
+                    },
+                    child: const Text('Change Color'),
+                  ),
+                  ColorPickerPopup(
+                    initialColor: currentColor,
+                    onColorSelected: (color) {},
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('#FF0000'), findsOneWidget);
+
+      await tester.tap(find.text('Change Color'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('#0000FF'), findsOneWidget);
+    });
+
     testWidgets('should call onColorSelected when select button is pressed', (
       WidgetTester tester,
     ) async {
@@ -183,8 +221,7 @@ void main() {
       await tester.tap(find.text('Open Color Picker'));
       await tester.pumpAndSettle();
 
-      // Find the hue slider (first slider area)
-      final hueSlider = find.byType(GestureDetector).first;
+      final hueSlider = find.byKey(const ValueKey('hue_slider_gesture'));
 
       // Drag the hue slider
       await tester.drag(hueSlider, const Offset(50, 0));
@@ -221,9 +258,7 @@ void main() {
       await tester.tap(find.text('Open Color Picker'));
       await tester.pumpAndSettle();
 
-      // Find the value slider (second slider area)
-      final valueSliders = find.byType(GestureDetector);
-      final valueSlider = valueSliders.at(1);
+      final valueSlider = find.byKey(const ValueKey('value_slider_gesture'));
 
       // Drag the value slider
       await tester.drag(valueSlider, const Offset(30, 0));

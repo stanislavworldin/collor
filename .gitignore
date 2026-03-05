@@ -10,8 +10,6 @@
 .svn/
 migrate_working_dir/
 
-deploy_pages.sh
-
 # IntelliJ related
 *.iml
 *.ipr
